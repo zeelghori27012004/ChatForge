@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 function EdgeDialog({ edge, onClose, onSave, onDelete, nodes, edges }) {
   const [label, setLabel] = useState("");
   const [sourceIsCondition, setSourceIsCondition] = useState(false);
+  const [error, setError] = useState("");
 
   const sourceNode = nodes.find((n) => n.id === edge.source);
   const targetNode = nodes.find((n) => n.id === edge.target);
@@ -14,6 +15,7 @@ function EdgeDialog({ edge, onClose, onSave, onDelete, nodes, edges }) {
 
     const type = edge?.data?.sourceNodeType || sourceNode?.type || "";
     setSourceIsCondition(type === "condition");
+    setError("");
   }, [edge, sourceNode]);
 
   // Get used condition labels for the same source node (excluding current edge)
@@ -32,7 +34,24 @@ function EdgeDialog({ edge, onClose, onSave, onDelete, nodes, edges }) {
     (opt) => !usedLabels.includes(opt) || opt === label?.toLowerCase()
   );
 
+  const validateLabel = (val) => {
+    if (/[^\w\s.,!?@#\-]/.test(val)) {
+      return "Special characters are not allowed.";
+    }
+    if (val.length > 100) {
+      return "Maximum length is 100 characters.";
+    }
+    return "";
+  };
+
+  const handleLabelChange = (e) => {
+    const val = e.target.value;
+    setLabel(val);
+    setError(validateLabel(val));
+  };
+
   const handleSave = () => {
+    if (error) return;
     const updatedEdge = {
       ...edge,
       label,
@@ -103,10 +122,13 @@ function EdgeDialog({ edge, onClose, onSave, onDelete, nodes, edges }) {
               <input
                 type="text"
                 value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded mb-4"
+                onChange={handleLabelChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded mb-1"
                 placeholder="Edge label"
               />
+              {error && (
+                <p className="text-red-500 text-sm mb-3">{error}</p>
+              )}
             </>
           )}
 
@@ -119,9 +141,9 @@ function EdgeDialog({ edge, onClose, onSave, onDelete, nodes, edges }) {
             </button>
             <button
               onClick={handleSave}
-              disabled={sourceIsCondition && !label}
+              disabled={!!error || (sourceIsCondition && !label)}
               className={`px-4 py-2 rounded text-white ${
-                sourceIsCondition && !label
+                !!error || (sourceIsCondition && !label)
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700"
               }`}
