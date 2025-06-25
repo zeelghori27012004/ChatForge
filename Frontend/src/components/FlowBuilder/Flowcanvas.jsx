@@ -47,6 +47,10 @@ function FlowCanvas({ nodes, setNodes, edges, setEdges }) {
 
   const onConnect = useCallback(
     (params) => {
+      if (!params.source || !params.target) {
+        // Optionally, show a toast or error here
+        return;
+      }
       const sourceNode = nodes.find((node) => node.id === params.source);
 
       if (sourceNode?.type === "buttons") {
