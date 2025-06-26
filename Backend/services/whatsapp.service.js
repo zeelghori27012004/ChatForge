@@ -85,3 +85,36 @@ export async function sendWhatsappMessage({to, text, projectId, buttons = []}) {
     throw error;
   }
 }
+
+export async function sendWhatsappMedia({to, content, projectId}){
+  try{
+    const {phoneNumberId, accessToken} = await getProjectCredentials(projectId);
+
+    let payload;
+
+    payload = {
+      messaging_product: "whatsapp",
+      to,
+      type: "document",
+      document: {
+        "link": content.mediaUrl,
+      },
+    };
+    const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
+    const response = await axios.post(url, payload, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("Media sent successfully:", response.data);
+    return response.data;
+  }
+  catch(error){
+    console.error(
+      "Error sending WhatsApp media:",
+      error.response ? error.response.data : error.message
+    );
+  }
+}

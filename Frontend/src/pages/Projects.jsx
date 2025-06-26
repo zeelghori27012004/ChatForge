@@ -1,13 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../context/user.context";
+import { useUser } from "../context/User.context";
 import {
   getProjects,
   createProject as createProjectService,
   deleteProject,
+  toggleProjectActiveState,
 } from "../services/projectService";
-import { Trash2, PencilIcon, PlusIcon } from "lucide-react";
-
+import {
+  Trash2,
+  PencilIcon,
+  PlusIcon,
+  EllipsisVertical,
+  BadgeCheck,
+} from "lucide-react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Projects() {
   const { user } = useUser();
@@ -19,20 +27,43 @@ export default function Projects() {
   const [createProjectModal, setCreateProjectModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
-  const [markedForDeletion, setMarkedForDeletion] = useState("");
+  const [activeProjectId, setActiveProjectId] = useState(null);
+  const [openOptionsId, setOpenOptionsId] = useState(null);
+  const optionsRef = useRef(null);
+
+  // Add ToastContainer at the component level
+  // This can also be added at your root App component
+  const notifyError = (message) => toast.error(message);
+  const notifySuccess = (message) => toast.success(message);
 
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (optionsRef.current && !optionsRef.current.contains(event.target)) {
+        setOpenOptionsId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
     fetchProjects();
-  }, [user]);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const fetchProjects = async () => {
-    // console.log("fetch projects called");
     try {
       setLoading(true);
       const data = await getProjects();
       setProjects(data || []);
+      const activeProject = data.find((project) => project.isActive);
+      if (activeProject) {
+        setActiveProjectId(activeProject._id);
+      }
     } catch (err) {
-      setError(err.message || "Failed to load projects");
+      const errorMsg = err.message || "Failed to load projects";
+      setError(errorMsg);
+      notifyError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -44,46 +75,101 @@ export default function Projects() {
 
   const createProject = async () => {
     if (!newProjectName.trim()) {
-      alert("Project name cannot be empty.");
+      notifyError("Project name cannot be empty.");
       return;
     }
 
     try {
       const data = await createProjectService({ name: newProjectName.trim() });
-
       setCreateProjectModal(false);
       setNewProjectName("");
-      navigate(`/projects/${data._id}`);
+      notifySuccess(`Project "${data.name}" created successfully!`);
+      fetchProjects();
     } catch (error) {
       console.error("Error creating project:", error.message);
-      alert(error.message);
+      notifyError(error.message);
     }
   };
 
-  const confirmDelete = (project) => {
-    setProjectToDelete(project); // store whole project object
+  const handleOpenOptions = (projectId, e) => {
+    e.stopPropagation();
+    setOpenOptionsId(openOptionsId === projectId ? null : projectId);
+  };
+
+  const confirmDelete = (project, e) => {
+    e?.stopPropagation();
+    setProjectToDelete(project);
     setShowDeleteModal(true);
+    setOpenOptionsId(null);
   };
 
   const handleDeleteProject = async () => {
     try {
       await deleteProject(projectToDelete._id);
       setProjects((prev) => prev.filter((p) => p._id !== projectToDelete._id));
+      if (activeProjectId === projectToDelete._id) {
+        setActiveProjectId(null);
+      }
       setShowDeleteModal(false);
       setProjectToDelete(null);
+      notifySuccess(`Project "${projectToDelete.name}" deleted successfully`);
     } catch (err) {
-      alert(err.message);
+      notifyError(err.message);
     }
-    // fetchProjects();
+  };
+
+  const handleSetActive = async (projectId, e) => {
+    e.stopPropagation();
+    try {
+      await toggleProjectActiveState({
+        projectId,
+        userId: user._id,
+      });
+
+      setProjects((prev) =>
+        prev.map((project) => ({
+          ...project,
+          isActive: project._id === projectId ? !project.isActive : false,
+        }))
+      );
+
+      setActiveProjectId((prev) => (prev === projectId ? null : projectId));
+
+      const project = projects.find((p) => p._id === projectId);
+      if (project) {
+        const action =
+          activeProjectId === projectId ? "deactivated" : "activated";
+        notifySuccess(`Project "${project.name}" ${action} successfully`);
+      }
+    } catch (error) {
+      console.error("Error toggling active state:", error.message);
+      notifyError(error.message);
+
+      // If it's the "only one project" error, refresh to sync state
+      if (error.message.includes("Only one project can be active")) {
+        fetchProjects();
+      }
+    }
   };
 
   return (
-    <>
     <div className="bg-slate-300 min-h-screen">
+      <ToastContainer
+        position="top-center"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+
       <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-4xl font-bold text-gray-800">My Projects</h1>
-
           <button
             onClick={createProjectPopup}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center gap-2"
@@ -99,30 +185,70 @@ export default function Projects() {
         ) : projects.length === 0 ? (
           <p className="text-gray-700">No projects yet. Create one above.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex-col gap-6">
             {projects.map((project) => (
               <div
                 key={project._id}
-                className="bg-slate-200 border border-gray-200 shadow rounded-xl p-6 hover:shadow-md transition-all"
+                className="relative flex justify-between items-center bg-slate-200 border border-gray-200 shadow rounded-xl p-5 m-5 hover:shadow-sm duration-300 hover:shadow-black transition-all"
               >
                 <h2 className="text-xl font-semibold text-black capitalize mb-1">
                   {project.name}
+                  {activeProjectId === project._id && (
+                    <span className="ml-4 text-xs bg-green-700 text-white px-2 py-1 rounded-full">
+                      Active
+                    </span>
+                  )}
                 </h2>
-                <p className="text-xs text-black mb-4">ID: {project._id}</p>
-                <div className="flex gap-2">
+                <div className="flex justify-center items-center gap-3">
+                  {/* Active Toggle Button */}
                   <button
-                    onClick={() => navigate(`/projects/${project._id}`)}
-                    className="bg-black text-white text-sm px-4 py-1.5 rounded hover:bg-slate-700 transition-colors duration-200"
+                    className={`p-2 rounded-full transition-all duration-300 ${
+                      activeProjectId === project._id
+                        ? "text-white bg-green-700 hover:bg-green-900"
+                        : "bg-slate-300 hover:bg-green-200"
+                    }`}
+                    onClick={(e) => handleSetActive(project._id, e)}
                   >
-                    <PencilIcon size={18} />
+                    <div className="flex gap-2 items-center justify-center px-2">
+                      {activeProjectId === project._id ? "Active" : "Activate"}
+                      <BadgeCheck />
+                    </div>
                   </button>
 
+                  {/* Options Button */}
                   <button
-                    onClick={() => confirmDelete(project)}
-                    className="bg-red-500 text-white text-sm px-4 py-1.5 rounded hover:bg-red-700 transition-colors duration-200 flex gap-1 items-center"
+                    className="text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-all"
+                    onClick={(e) => handleOpenOptions(project._id, e)}
                   >
-                    <Trash2 size={18} />
+                    <EllipsisVertical />
                   </button>
+
+                  {/* Options Dropdown */}
+                  {openOptionsId === project._id && (
+                    <div
+                      ref={optionsRef}
+                      className="absolute right-0 top-12 z-10 bg-white rounded-md shadow-lg py-1 w-40"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={(e) => {
+                          navigate(`/projects/${project._id}`);
+                          setOpenOptionsId(null);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <PencilIcon className="mr-2 h-4 w-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => confirmDelete(project, e)}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -177,6 +303,8 @@ export default function Projects() {
                 onChange={(e) => setNewProjectName(e.target.value)}
                 value={newProjectName}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring focus:ring-blue-400"
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && createProject()}
               />
               <div className="flex justify-end gap-3">
                 <button
@@ -200,6 +328,5 @@ export default function Projects() {
         )}
       </div>
     </div>
-    </>
   );
 }
