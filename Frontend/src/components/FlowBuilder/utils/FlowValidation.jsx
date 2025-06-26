@@ -99,6 +99,15 @@ export function validateFlow(nodes, edges) {
           `Error: Node "${node.data.label || node.id}" is missing required content: ${field}`
         );
       }
+      // API URL validation
+      if (nodeType === "apiCall" && field === "url" && typeof value === "string") {
+        try {
+          // eslint-disable-next-line no-new
+          new URL(value);
+        } catch {
+          errors.push(`Error: Node "${node.data.label || node.id}" has an invalid API URL.`);
+        }
+      }
     });
     // --- End required content validation ---
 
@@ -173,6 +182,39 @@ export function validateFlow(nodes, edges) {
       default:
         break;
     }
+  }
+
+  // Check for multiple end nodes
+  const endNodes = nodes.filter((n) => n.type === "end");
+  if (endNodes.length > 1) {
+    errors.push("Error: Multiple end nodes detected. Only one is allowed.");
+  }
+
+  // Cycle detection (DFS)
+  function hasCycle() {
+    const visited = new Set();
+    const recStack = new Set();
+    const adj = {};
+    nodes.forEach((node) => (adj[node.id] = []));
+    edges.forEach((edge) => {
+      if (adj[edge.source]) adj[edge.source].push(edge.target);
+    });
+    function dfs(nodeId) {
+      if (!visited.has(nodeId)) {
+        visited.add(nodeId);
+        recStack.add(nodeId);
+        for (const neighbor of adj[nodeId]) {
+          if (!visited.has(neighbor) && dfs(neighbor)) return true;
+          else if (recStack.has(neighbor)) return true;
+        }
+      }
+      recStack.delete(nodeId);
+      return false;
+    }
+    return nodes.some((node) => dfs(node.id));
+  }
+  if (hasCycle()) {
+    errors.push("Error: The flow contains a circular loop (cycle). Please remove cycles.");
   }
 
   return {
