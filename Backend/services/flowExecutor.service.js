@@ -446,6 +446,70 @@ async function executeNode(nodeId, context) {
       return; // pause until user replies
     }
 
+    case "apiCall": {
+      const {
+        method,
+        url,
+        headers = {},
+        selectedField,
+        responseType,
+      } = node.data?.properties || {};
+
+      if (!method || !url) break;
+
+      try {
+        // Replace {{variable}} in URL from Redis
+        const variableRegex = /{{(.*?)}}/g;
+        let compiledUrl = url;
+        for (const match of [...url.matchAll(variableRegex)]) {
+          const variableName = match[1];
+          const redisKey = `${context.projectId}_${context.senderWaPhoneNo}_${variableName}`;
+          const variableValue = await redisClient.get(redisKey);
+          if (!variableValue) throw new Error(`Missing value for variable "${variableName}"`);
+          compiledUrl = compiledUrl.replace(`{{${variableName}}}`, variableValue);
+        }
+
+        // Make API request
+        const response = await axios({ method, url: compiledUrl, headers});
+
+        // Extract selected field
+        const path = selectedField?.path || "";
+        const pathParts = path.startsWith(".") ? path.slice(1).split(".") : path.split(".");
+        const value = pathParts.reduce((obj, key) => obj?.[key], response);
+
+        if (!value) throw new Error("Selected field not found in API response.");
+
+        // if (responseType === "media") {
+          await sendWhatsappMessage({
+            to: context.senderWaPhoneNo,
+            type: "document", // default to document
+            content: {
+              mediaUrl: value,
+            },
+            projectId: context.projectId,
+          });
+        // } else {
+        //   await sendWhatsappMessage({
+        //     to: context.senderWaPhoneNo,
+        //     type: "text",
+        //     text:
+        //       typeof value === "object"
+        //         ? `API Response:\n${JSON.stringify(value, null, 2)}`
+        //         : `API Response: ${value}`,
+        //     projectId: context.projectId,
+        //   });
+        // }
+
+        nextNodeId = findNextNode(node.id, fileTree.edges, true);
+      } catch (err) {
+        console.error("API Call Failed:", err.message);
+
+        nextNodeId = findNextNode(node.id, fileTree.edges, false);
+      }
+
+      break;
+    }
+
     case "end":
       console.log("Flow ended by end node.");
       await redisClient.del(userStateKey);
