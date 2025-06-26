@@ -216,6 +216,92 @@ export async function processMessage({
     currentNodeId = startNode.id;
   }
 
+  //------------------------------ question - node starts-------------------------------//
+  
+  const currentNode = fileTree.nodes.find((n) => n.id === currentNodeId);
+  if (!currentNode) {
+    console.error("Current node not found in fileTree.");
+    await redisClient.del(userStateKey);
+    return;
+  }
+
+
+  if (currentNode.type === "askaQuestion") {
+    const askedFlag = await redisClient.get(`${userStateKey}:asked`);
+
+    if (askedFlag) {
+      const variableName = currentNode.data?.properties?.propertyName;
+      const validationType = currentNode.data?.properties?.validationType;
+      const numberOfRepeats = parseInt(currentNode.data?.properties?.numberOfRepeats || "3", 10);
+      const retryKey = `${userStateKey}:retries`;
+
+      const retryCount = parseInt((await redisClient.get(retryKey)) || "0", 10);
+
+      let isValid = true;
+      const input = messageText.trim();
+
+      if (validationType === "email") {
+        isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+      } else if (validationType === "phonenumber") {
+        isValid = /^\+?\d{10,15}$/.test(input);
+      } else if (validationType === "url") {
+        isValid = /^(https?:\/\/)?[\w.-]+(\.[\w\.-]+)+[\w\-\._~:\/?#\[\]@!\$&'\(\)\*\+,;=.]+$/.test(input);
+      }
+
+      if (!isValid) {
+        if (retryCount + 1 >= numberOfRepeats) {
+          await sendWhatsappMessage({
+            to: senderWaPhoneNo,
+            text: "❌ Too many invalid attempts. Ending flow.",
+            projectId,
+          });
+          await redisClient.del(userStateKey);
+          await redisClient.del(`${userStateKey}:asked`);
+          await redisClient.del(retryKey);
+          return;
+        }
+
+        await redisClient.set(retryKey, retryCount + 1, "EX", 3600);
+        await sendWhatsappMessage({
+          to: senderWaPhoneNo,
+          text: `❌ Please provide a valid ${validationType}.`,
+          projectId,
+        });
+        return;
+      }
+
+      // Store valid answer
+      if (variableName) {
+        await redisClient.set(
+          `${projectId}_${senderWaPhoneNo}_${variableName}`,
+          input,
+          "EX",
+          3600
+        );
+        console.log(`Stored variable ${variableName} = ${input}`);
+      }
+
+      const nextNodeId = findNextNode(currentNode.id, fileTree.edges);
+      if (nextNodeId) {
+        await redisClient.set(userStateKey, nextNodeId, "EX", 3600);
+        await redisClient.del(`${userStateKey}:asked`);
+        await redisClient.del(retryKey);
+        await executeNode(nextNodeId, {
+          projectId,
+          senderWaPhoneNo,
+          messageText,
+          fileTree,
+          userStateKey,
+        });
+      } else {
+        await redisClient.del(userStateKey);
+        console.log("No next node after question.");
+      }
+      return;
+    }
+  }
+    //------------------------------ question - node ends-------------------------------//
+
   await executeNode(currentNodeId, {
     projectId,
     senderWaPhoneNo,
@@ -343,6 +429,21 @@ async function executeNode(nodeId, context) {
       );
       await redisClient.del(`${userStateKey}:buttonInvalidCount`);
       return;
+    }
+
+    case "askaQuestion": {
+      const alreadyAsked = await redisClient.get(`${userStateKey}:asked`);
+      if (alreadyAsked) return; // already asked, waiting for reply
+
+      const questionText = node.data?.properties?.question || "Please reply:";
+      await sendWhatsappMessage({
+        to: context.senderWaPhoneNo,
+        type: "text",
+        text: questionText,
+        projectId: context.projectId,
+      });
+      await redisClient.set(`${userStateKey}:asked`, "true", "EX", 3600);
+      return; // pause until user replies
     }
 
     case "end":
