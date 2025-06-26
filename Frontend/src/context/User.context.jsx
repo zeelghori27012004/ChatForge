@@ -8,7 +8,6 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      // Optionally decode token or fetch user profile here
       setUser({ token });
     }
   }, []);

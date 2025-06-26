@@ -95,3 +95,39 @@ export const updateProjectFlow = async (projectId, fileTree) => {
     );
   }
 };
+
+export const toggleProjectActiveState = async ({ projectId, userId }) => {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}/toggle-active/${projectId}`,
+      { userId },
+      getAuthHeaders()
+    );
+    return response.data;
+  } catch (error) {
+    const errorMessage =
+      error.response?.data?.error ||
+      error.message ||
+      "Failed to toggle project active state";
+    throw new Error(errorMessage);
+  }
+};
+
+export const updateProjectName = async ({ projectId, name, userId }) => {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}/update-name/${projectId}`,
+      { name, userId },
+      getAuthHeaders()
+    );
+    return response.data;
+  } catch (error) {
+    // Extract the server's error message if available
+    const errorMessage =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message ||
+      "Failed to update project name";
+    throw new Error(errorMessage);
+  }
+};

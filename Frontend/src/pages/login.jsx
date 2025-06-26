@@ -4,7 +4,7 @@ import { login, googleLogin } from "../services/authService";
 import { UserContext } from "../context/user.context";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import Footer from "../components/Footer"; 
+import Footer from "../components/Footer";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -68,7 +68,9 @@ const Login = () => {
       const decoded = jwtDecode(idToken);
       const email = decoded?.email || "GoogleUser";
       const name = decoded?.name || "User";
-
+      const profilePhoto =
+        decoded?.picture || "https://avatar.iran.liara.run/public";
+      console.log(decoded);
       setUser({
         email,
         name,
