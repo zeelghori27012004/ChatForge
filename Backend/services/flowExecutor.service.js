@@ -1,6 +1,8 @@
 import projectModel from "../models/project.model.js";
 import redisClient from "./redis.service.js";
-import {sendWhatsappMessage} from "./whatsapp.service.js";
+import { sendWhatsappMessage, sendWhatsappMedia } from "./whatsapp.service.js";
+import _ from "lodash";
+import axios from "axios";
 
 // Normalize button text
 function normalizeLabel(label) {
@@ -14,7 +16,7 @@ function findNextNode(sourceNodeId, edges, conditionLabel = null) {
       edges.find(
         (e) =>
           e.source === sourceNodeId &&
-          normalizeLabel(e.label || "") === normalizeLabel(conditionLabel)
+          normalizeLabel(e.label || "") === normalizeLabel(conditionLabel),
       )?.target || null
     );
   }
@@ -50,7 +52,7 @@ export async function processMessage({
   let awaiting;
   try {
     const awaitingStr = await redisClient.get(
-      `${userStateKey}:awaitingButtonResponse`
+      `${userStateKey}:awaitingButtonResponse`,
     );
     if (awaitingStr) awaiting = JSON.parse(awaitingStr);
   } catch (error) {
@@ -58,7 +60,7 @@ export async function processMessage({
   }
 
   if (awaiting) {
-    const {nodeId, buttons} = awaiting;
+    const { nodeId, buttons } = awaiting;
 
     console.log("✅ Awaiting button response:");
     console.log("User input (raw messageText):", messageText);
@@ -66,13 +68,13 @@ export async function processMessage({
     console.log("Normalized input:", normalizedInput);
     console.log(
       "Matching against button IDs:",
-      buttons.map((btn, index) => `btn_${index + 1}_${normalizeLabel(btn)}`)
+      buttons.map((btn, index) => `btn_${index + 1}_${normalizeLabel(btn)}`),
     );
 
     // Match based on reply ID format
     const matchedIndex = buttons.findIndex(
       (btn, index) =>
-        normalizedInput === `btn_${index + 1}_${normalizeLabel(btn)}`
+        normalizedInput === `btn_${index + 1}_${normalizeLabel(btn)}`,
     );
 
     const matchedLabel = matchedIndex !== -1 ? buttons[matchedIndex] : null;
@@ -83,7 +85,7 @@ export async function processMessage({
       const nextNodeId = findNextNode(
         nodeId,
         fileTree.edges,
-        normalizeLabel(matchedLabel)
+        normalizeLabel(matchedLabel),
       );
 
       if (nextNodeId) {
@@ -118,7 +120,7 @@ export async function processMessage({
 
       if (invalidCount >= 3) {
         console.warn(
-          `User ${senderWaPhoneNo} exceeded invalid attempts. Ending flow.`
+          `User ${senderWaPhoneNo} exceeded invalid attempts. Ending flow.`,
         );
 
         await sendWhatsappMessage({
@@ -150,7 +152,7 @@ export async function processMessage({
         invalidCountKey,
         invalidCount.toString(),
         "EX",
-        3600
+        3600,
       );
 
       await sendWhatsappMessage({
@@ -170,7 +172,7 @@ export async function processMessage({
 
       const matchedIndex = buttons.findIndex(
         (btn, index) =>
-          normalizedInput === `btn_${index + 1}_${normalizeLabel(btn)}`
+          normalizedInput === `btn_${index + 1}_${normalizeLabel(btn)}`,
       );
 
       const matchedLabel = matchedIndex !== -1 ? buttons[matchedIndex] : null;
@@ -179,7 +181,7 @@ export async function processMessage({
         const nextNodeId = findNextNode(
           node.id,
           fileTree.edges,
-          normalizeLabel(matchedLabel)
+          normalizeLabel(matchedLabel),
         );
         if (nextNodeId) {
           await redisClient.set(userStateKey, nextNodeId, "EX", 3600);
@@ -216,6 +218,106 @@ export async function processMessage({
     currentNodeId = startNode.id;
   }
 
+  //------------------------------ question - node starts-------------------------------//
+
+  const currentNode = fileTree.nodes.find((n) => n.id === currentNodeId);
+  if (!currentNode) {
+    console.error("Current node not found in fileTree.");
+    await redisClient.del(userStateKey);
+    return;
+  }
+
+  if (currentNode.type === "askaQuestion") {
+    const askedFlag = await redisClient.get(`${userStateKey}:asked`);
+
+    if (askedFlag) {
+      const variableName = currentNode.data?.properties?.propertyName;
+      const validationType = currentNode.data?.properties?.validationType;
+      const numberOfRepeats = parseInt(
+        currentNode.data?.properties?.numberOfRepeats || "3",
+        10,
+      );
+      const retryKey = `${userStateKey}:retries`;
+
+      const retryCount = parseInt((await redisClient.get(retryKey)) || "0", 10);
+
+      let isValid = true;
+      const input = messageText.trim();
+
+      if (validationType === "email") {
+        isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+      } else if (validationType === "phonenumber") {
+        isValid = /^\+?\d{10,15}$/.test(input);
+      } else if (validationType === "url") {
+        isValid =
+          /^(https?:\/\/)?[\w.-]+(\.[\w\.-]+)+[\w\-\._~:\/?#\[\]@!\$&'\(\)\*\+,;=.]+$/.test(
+            input,
+          );
+      }
+
+      if (!isValid) {
+        if (retryCount + 1 >= numberOfRepeats) {
+          // await sendWhatsappMessage({
+          //   to: senderWaPhoneNo,
+          //   text: "❌ Too many invalid attempts. Ending flow.",
+          //   projectId,
+          // });
+          // await redisClient.del(userStateKey);
+          await redisClient.del(`${userStateKey}:asked`);
+          await redisClient.del(retryKey);
+          const nextNodeId = findNextNode(currentNodeId, fileTree.edges, "Failure");
+          await redisClient.set(userStateKey, nextNodeId, "EX", 3600);
+          await executeNode(nextNodeId, {
+            projectId,
+            senderWaPhoneNo,
+            messageText,
+            fileTree,
+            userStateKey,
+          });
+          return;
+        }
+
+        await redisClient.set(retryKey, retryCount + 1, "EX", 3600);
+        await sendWhatsappMessage({
+          to: senderWaPhoneNo,
+          text: `❌ Please provide a valid ${validationType}.`,
+          projectId,
+        });
+        return;
+      }
+
+      // Store valid answer
+      if (variableName) {
+        await redisClient.set(
+          `${projectId}_${senderWaPhoneNo}_${variableName}`,
+          input,
+          "EX",
+          3600,
+        );
+        console.log(`Stored variable ${variableName} = ${input}`);
+      }
+
+      const nextNodeId = findNextNode(currentNode.id, fileTree.edges, "Success");
+      if (nextNodeId) {
+        await redisClient.set(userStateKey, nextNodeId, "EX", 3600);
+        await redisClient.del(`${userStateKey}:asked`);
+        await redisClient.del(retryKey);
+        await executeNode(nextNodeId, {
+          projectId,
+          senderWaPhoneNo,
+          messageText,
+          fileTree,
+          userStateKey,
+        });
+      } else {
+        await redisClient.del(userStateKey);
+        console.log("No next node after question.");
+      }
+      return;
+    }
+  }
+  //------------------------------ question - node ends-------------------------------//
+
   await executeNode(currentNodeId, {
     projectId,
     senderWaPhoneNo,
@@ -228,7 +330,7 @@ export async function processMessage({
 
 // Executes a node in the flow
 async function executeNode(nodeId, context) {
-  const {fileTree, userStateKey} = context;
+  const { fileTree, userStateKey } = context;
   const node = fileTree.nodes.find((n) => n.id === nodeId);
   if (!node) {
     console.error(`Node with ID ${nodeId} not found.`);
@@ -269,13 +371,13 @@ async function executeNode(nodeId, context) {
       const lowerMessage = context.messageText?.toLowerCase() || "";
 
       const matches = keywords.some((k) =>
-        lowerMessage.includes(k.toLowerCase())
+        lowerMessage.includes(k.toLowerCase()),
       );
 
       nextNodeId = findNextNode(
         node.id,
         fileTree.edges,
-        matches ? "true" : "false"
+        matches ? "true" : "false",
       );
       break;
 
@@ -289,7 +391,7 @@ async function executeNode(nodeId, context) {
 
       const matchedIndex = buttons.findIndex(
         (btn, index) =>
-          normalizedResponse === `btn_${index + 1}_${normalizeLabel(btn)}`
+          normalizedResponse === `btn_${index + 1}_${normalizeLabel(btn)}`,
       );
 
       const matchedLabel = matchedIndex !== -1 ? buttons[matchedIndex] : null;
@@ -298,7 +400,7 @@ async function executeNode(nodeId, context) {
         const nextNodeId = findNextNode(
           node.id,
           fileTree.edges,
-          normalizeLabel(matchedLabel)
+          normalizeLabel(matchedLabel),
         );
 
         if (nextNodeId) {
@@ -311,7 +413,7 @@ async function executeNode(nodeId, context) {
           return;
         } else {
           console.warn(
-            `Matched label "${matchedLabel}" but no next node found.`
+            `Matched label "${matchedLabel}" but no next node found.`,
           );
         }
       }
@@ -339,10 +441,85 @@ async function executeNode(nodeId, context) {
           buttons: buttons,
         }),
         "EX",
-        3600
+        3600,
       );
       await redisClient.del(`${userStateKey}:buttonInvalidCount`);
       return;
+    }
+
+    case "askaQuestion": {
+      const alreadyAsked = await redisClient.get(`${userStateKey}:asked`);
+      if (alreadyAsked) return; // already asked, waiting for reply
+
+      const questionText = node.data?.properties?.question || "Please reply:";
+      await sendWhatsappMessage({
+        to: context.senderWaPhoneNo,
+        type: "text",
+        text: questionText,
+        projectId: context.projectId,
+      });
+      await redisClient.set(`${userStateKey}:asked`, "true", "EX", 3600);
+      return; // pause until user replies
+    }
+
+    case "apiCall": {
+      const {
+        method,
+        url,
+        headers = {},
+        selectedField,
+      } = node.data?.properties || {};
+
+      if (!method || !url) break;
+
+      try {
+        // Replace {{variable}} in URL from Redis
+        const variableRegex = /{{(.*?)}}/g;
+        let compiledUrl = url;
+        for (const match of [...url.matchAll(variableRegex)]) {
+          const variableName = match[1];
+          const redisKey = `${context.projectId}_${context.senderWaPhoneNo}_${variableName}`;
+          const variableValue = await redisClient.get(redisKey);
+          if (!variableValue)
+            throw new Error(`Missing value for variable "${variableName}"`);
+          compiledUrl = compiledUrl.replace(
+            `{{${variableName}}}`,
+            variableValue,
+          );
+        }
+
+        // Make API request
+        const response = await axios({ method, url: compiledUrl, headers});
+
+        // new logic
+        const rawPath = selectedField?.path || "";
+        const cleanedPath = rawPath.replace(/^\./, ""); // Remove leading dot if present
+        const value = _.get(response.data, cleanedPath);
+
+        console.log("rawPath : ", rawPath);
+        console.log("cleanedPath : ", cleanedPath);
+        console.log("value : ", value);
+
+        if (!value)
+          throw new Error("Selected field not found in API response.");
+
+        await sendWhatsappMedia({
+          to: context.senderWaPhoneNo,
+          // type: "document", // default to document
+          content: {
+            mediaUrl: value,
+          },
+          projectId: context.projectId,
+        });
+
+        nextNodeId = findNextNode(node.id, fileTree.edges, "Success");
+      } catch (err) {
+        console.error("API Call Failed:", err.message);
+
+        nextNodeId = findNextNode(node.id, fileTree.edges, "Failure");
+      }
+
+      break;
     }
 
     case "end":
@@ -369,7 +546,7 @@ async function executeNode(nodeId, context) {
       await executeNode(nextNodeId, context);
     } else {
       console.log(
-        `Waiting for user reply before continuing from node ${node.id}`
+        `Waiting for user reply before continuing from node ${node.id}`,
       );
     }
   } else {
