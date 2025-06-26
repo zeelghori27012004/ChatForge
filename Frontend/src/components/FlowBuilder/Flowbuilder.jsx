@@ -19,14 +19,16 @@ import {
   getInitialFields,
 } from "../Nodes/Node-config";
 import { VariableProvider } from "../../context/Variable.context";
+import ProjectNavbar from "./ProjectNavbar";
 
 function FlowBuilder() {
   const { id: projectId } = useParams();
   const [flowErrors, setFlowErrors] = useState([]);
   const reactFlowWrapper = useRef(null);
-
+  const [projectName, setProjectName] = useState("");
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
+  const [currProject, setCurrProject] = useState(null);
 
   const onReset = useCallback(() => {
     setNodes([]);
@@ -90,6 +92,12 @@ function FlowBuilder() {
     const fetchProjectFlow = async () => {
       try {
         const projectFlow = await getProjectById(projectId);
+        if (projectFlow) {
+          setCurrProject(projectFlow);
+        }
+        if (projectFlow && projectFlow.name) {
+          setProjectName(projectFlow.name);
+        }
         if (projectFlow && projectFlow.fileTree) {
           setNodes(projectFlow.fileTree.nodes || []);
           setEdges(projectFlow.fileTree.edges || []);
@@ -99,6 +107,7 @@ function FlowBuilder() {
         toast.error("Failed to load flow.");
       }
     };
+
     fetchProjectFlow();
   }, [projectId]);
 
@@ -123,37 +132,40 @@ function FlowBuilder() {
   };
 
   return (
-    <div className="relative h-screen w-full bg-gray-100 overflow-hidden">
-      <ToastContainer
-        position="top-center"
-        autoClose={5000}
-        pauseOnHover={true}
-      />
+    <>
+      <ProjectNavbar project={currProject} initialName={projectName} />
+      <div className="relative h-screen w-full bg-gray-100 overflow-x-hidden">
+        <ToastContainer
+          position="top-center"
+          autoClose={5000}
+          pauseOnHover={true}
+        />
 
-      <FlowBuilderLeftSidebar onAddNode={onAddNode} />
+        <FlowBuilderLeftSidebar onAddNode={onAddNode} />
 
-      <div
-        ref={reactFlowWrapper}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: "80px",
-          right: "80px",
-          bottom: 0,
-        }}
-      >
-        <VariableProvider>
-          <FlowCanvas
-            nodes={nodes}
-            setNodes={setNodes}
-            edges={edges}
-            setEdges={setEdges}
-          />
-        </VariableProvider>
+        <div
+          ref={reactFlowWrapper}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "80px",
+            right: "80px",
+            bottom: 0,
+          }}
+        >
+          <VariableProvider>
+            <FlowCanvas
+              nodes={nodes}
+              setNodes={setNodes}
+              edges={edges}
+              setEdges={setEdges}
+            />
+          </VariableProvider>
+        </div>
+
+        <FlowBuilderRightSidebar onReset={onReset} onSave={saveFlow} />
       </div>
-
-      <FlowBuilderRightSidebar onReset={onReset} onSave={saveFlow} />
-    </div>
+    </>
   );
 }
 
