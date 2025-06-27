@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../context/user.context";
+import { useUser } from "../context/User.context";
 import {
   getProjects,
   createProject as createProjectService,

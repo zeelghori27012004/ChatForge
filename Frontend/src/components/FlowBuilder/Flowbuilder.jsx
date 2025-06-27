@@ -107,7 +107,6 @@ function FlowBuilder() {
         toast.error("Failed to load flow.");
       }
     };
-
     fetchProjectFlow();
   }, [projectId]);
 

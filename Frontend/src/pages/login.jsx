@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { login, googleLogin } from "../services/authService";
-import { UserContext } from "../context/user.context";
+import { UserContext } from "../context/User.context";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import Footer from "../components/Footer";
+import Footer from "../components/Footer"; 
 
 const Login = () => {
   const [formData, setFormData] = useState({

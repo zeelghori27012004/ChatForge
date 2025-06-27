@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { getProfile } from "../services/authService";
 
 export const UserContext = createContext();
 
@@ -8,7 +9,10 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      setUser({ token });
+      // Fetch user profile from backend
+      getProfile()
+        .then((profile) => setUser(profile))
+        .catch(() => setUser({ token }));
     }
   }, []);
 
