@@ -1,7 +1,7 @@
 import { ArrowLeft, Edit, Check, X, Calculator } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { updateProjectName } from "../../services/projectService";
-import { useUser } from "../../context/user.context";
+import { useUser } from "../../context/User.context";
 import { toast } from "react-toastify";
 import React, { useState, useEffect } from "react";
 
