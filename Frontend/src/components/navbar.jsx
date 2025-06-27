@@ -35,16 +35,16 @@ export default function Navbar() {
       if (
         iconRef.current &&
         !iconRef.current.contains(e.target) &&
-        !document.getElementById('profile-dropdown-menu')?.contains(e.target)
+        !document.getElementById("profile-dropdown-menu")?.contains(e.target)
       ) {
         setShowMenu(false);
       }
     }
     if (showMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showMenu]);
 
@@ -77,62 +77,75 @@ export default function Navbar() {
                   onClick={() => setShowMenu((v) => !v)}
                   className="flex items-center focus:outline-none"
                 >
-                  <FaUserCircle size={32} className="text-blue-600" />
+                  <img
+                    src={`${user.photoUrl}`}
+                    className="rounded-full h-12 w-12"
+                  />
+                  {/* <FaUserCircle size={32} className="text-blue-600" /> */}
                 </button>
-                {showMenu && ReactDOM.createPortal(
-                  <div
-                    className="fixed w-64 bg-white border rounded-xl shadow-2xl z-50 p-4 flex flex-col gap-2"
-                    style={{ top: menuPos.top, left: menuPos.left }}
-                    id="profile-dropdown-menu"
-                  >
-                    {/* User Info */}
-                    <div className="flex items-center gap-3 mb-2">
-                      {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="avatar" className="w-12 h-12 rounded-full border" />
-                      ) : (
-                        <FaUserCircle size={48} className="text-blue-600" />
-                      )}
-                      <div>
-                        <div className="font-semibold text-lg text-gray-900">{user?.name || user?.username || "User Name"}</div>
-                        {user?.role && (
-                          <div className="text-xs text-gray-500 mt-1">{user.role}</div>
+                {showMenu &&
+                  ReactDOM.createPortal(
+                    <div
+                      className="fixed w-64 bg-white border rounded-xl shadow-2xl z-50 p-4 flex flex-col gap-2"
+                      style={{ top: menuPos.top, left: menuPos.left }}
+                      id="profile-dropdown-menu"
+                    >
+                      {/* User Info */}
+                      <div className="flex items-center gap-3 mb-2">
+                        {user?.avatarUrl ? (
+                          <img
+                            src={user.avatarUrl}
+                            alt="avatar"
+                            className="w-12 h-12 rounded-full border"
+                          />
+                        ) : (
+                          <FaUserCircle size={48} className="text-blue-600" />
                         )}
+                        <div>
+                          <div className="font-semibold text-lg text-gray-900">
+                            {user?.name || user?.username || "User Name"}
+                          </div>
+                          {user?.role && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {user.role}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <hr className="my-2" />
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        navigate("/profile");
-                      }}
-                      className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-md font-medium text-gray-800 hover:bg-gray-200 focus:bg-gray-200 mb-1"
-                    >
-                      <FiUser className="text-lg" />
-                      View Profile
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        navigate("/settings");
-                      }}
-                      className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-md font-medium text-gray-800 hover:bg-gray-200 focus:bg-gray-200 mb-1"
-                    >
-                      <MdSettings className="text-lg" />
-                      Settings
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowMenu(false);
-                        handleLogout();
-                      }}
-                      className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-md font-medium text-red-600 hover:bg-gray-200 focus:bg-gray-200 border border-transparent hover:border-red-200"
-                    >
-                      <FiLogOut className="text-lg" />
-                      Logout
-                    </button>
-                  </div>,
-                  document.body
-                )}
+                      <hr className="my-2" />
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          navigate("/profile");
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-md font-medium text-gray-800 hover:bg-gray-200 focus:bg-gray-200 mb-1"
+                      >
+                        <FiUser className="text-lg" />
+                        View Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          navigate("/settings");
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-md font-medium text-gray-800 hover:bg-gray-200 focus:bg-gray-200 mb-1"
+                      >
+                        <MdSettings className="text-lg" />
+                        Settings
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 rounded-md font-medium text-red-600 hover:bg-gray-200 focus:bg-gray-200 border border-transparent hover:border-red-200"
+                      >
+                        <FiLogOut className="text-lg" />
+                        Logout
+                      </button>
+                    </div>,
+                    document.body
+                  )}
               </div>
             )}
           </div>

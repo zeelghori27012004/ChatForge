@@ -101,3 +101,78 @@ export const getProfile = async () => {
   }
   return await response.json();
 };
+
+export const sendResetCode = async (email) => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_DOMAIN}/users/reset-password/send-code`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }
+  );
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(text || "Failed to send reset code");
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Failed to send reset code");
+  }
+
+  return data.message;
+};
+
+export const verifyResetCode = async (email, code) => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_DOMAIN}/users/reset-password/verify-code`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    }
+  );
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(text || "Failed to verify code");
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Invalid or expired code");
+  }
+
+  return data.message;
+};
+
+export const resetPassword = async (email, newPassword) => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_DOMAIN}/users/reset-password`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, newPassword }),
+    }
+  );
+
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(text || "Failed to reset password");
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Password reset failed");
+  }
+
+  return data.message;
+};

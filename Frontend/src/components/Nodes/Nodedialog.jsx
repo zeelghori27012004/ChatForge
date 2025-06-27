@@ -67,17 +67,17 @@ function BaseNodeDialog({ node, onClose, onSave, onDelete }) {
       }
 
       // Special character and length validation for label fields
-      const labelFields = ["message", "requestName", "question", "propertyName"];
-      if (labelFields.includes(field) && typeof value === "string") {
-        if (/[^\w\s.,!?@#\-]/.test(value)) {
-          newErrors[field] = "Special characters are not allowed.";
-          return;
-        }
-        if (value.length > 100) {
-          newErrors[field] = "Maximum length is 100 characters.";
-          return;
-        }
-      }
+      // const labelFields = ["message", "requestName", "question", "propertyName"];
+      // if (labelFields.includes(field) && typeof value === "string") {
+      //   if (/[^\w\s.,!?@#\-]/.test(value)) {
+      //     newErrors[field] = "Special characters are not allowed.";
+      //     return;
+      //   }
+      //   if (value.length > 100) {
+      //     newErrors[field] = "Maximum length is 100 characters.";
+      //     return;
+      //   }
+      // }
 
       // Check for arrays
       if (Array.isArray(value)) {

@@ -4,7 +4,7 @@ import { login, googleLogin } from "../services/authService";
 import { UserContext } from "../context/User.context";
 import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
-import Footer from "../components/Footer"; 
+import Footer from "../components/Footer";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -29,6 +29,10 @@ const Login = () => {
       setTimeout(() => navigate("/dashboard"), 1000);
     }
   }, [navigate, user]);
+
+  const handleForgotPassword = () => {
+    navigate("/resetpassword");
+  };
 
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
@@ -70,11 +74,12 @@ const Login = () => {
       const name = decoded?.name || "User";
       const profilePhoto =
         decoded?.picture || "https://avatar.iran.liara.run/public";
-      console.log(decoded);
+
       setUser({
         email,
         name,
         isAdmin: formData.isAdmin,
+        photoUrl: profilePhoto,
       });
 
       window.dispatchEvent(new Event("tokenChange"));
@@ -119,8 +124,17 @@ const Login = () => {
             onChange={handleChange}
             required
             autoComplete="current-password"
-            className="w-full mb-4 px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:ring-blue-300"
           />
+
+          <div className="text-right mt-2 mb-4">
+            <p
+              onClick={handleForgotPassword}
+              className="text-blue-600 text-sm cursor-pointer hover:underline"
+            >
+              Forgot Password?
+            </p>
+          </div>
 
           <div className="mb-4">
             <label className="inline-flex items-center">
