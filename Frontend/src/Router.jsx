@@ -19,6 +19,8 @@ import HowToUse from "./pages/HowToUse";
 import FAQs from "./pages/FAQs";
 import Support from "./pages/Support";
 import Footer from "./components/Footer";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 
 const router = createBrowserRouter([
   {
@@ -122,6 +124,22 @@ const router = createBrowserRouter([
             <Support />
             <Footer />
           </>
+        ),
+      },
+      {
+        path: "profile",
+        element: (
+          <PrivateRoute>
+            <Profile />
+          </PrivateRoute>
+        ),
+      },
+      {
+        path: "settings",
+        element: (
+          <PrivateRoute>
+            <Settings />
+          </PrivateRoute>
         ),
       },
     ],

@@ -87,3 +87,17 @@ export const register = async (formData) => {
   localStorage.setItem("token", data.token);
   return data.token;
 };
+
+export const getProfile = async () => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_DOMAIN}/users/me`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch user profile");
+  }
+  return await response.json();
+};
