@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
-import { UserContext } from "../context/user.context";
+import { UserContext } from "../context/User.context";
 
 const Dashboard = () => {
   return (

@@ -7,9 +7,8 @@ import Login from "./pages/login";
 import Register from "./pages/register";
 import Projects from "./pages/Projects";
 import PrivateRoute from "./components/Protectedroute";
-
+import ResetPasswordPage from "./pages/ResetPassword/ResetPasswordForm";
 import FlowBuilder from "./components/FlowBuilder/Flowbuilder";
-
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Services from "./pages/Services";
 import Work from "./pages/Work";
@@ -151,6 +150,10 @@ const router = createBrowserRouter([
   {
     path: "/register",
     element: <Register />,
+  },
+  {
+    path: "/resetpassword",
+    element: <ResetPasswordPage />,
   },
   {
     path: "*",
