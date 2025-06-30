@@ -29,7 +29,7 @@ export async function sendWhatsappMessage({to, text, projectId, buttons = []}) {
 
     let payload;
 
-    // ✅ If buttons are provided, send interactive button message
+    // If buttons are provided, send interactive button message
     if (buttons.length > 0) {
       const formattedButtons =
         typeof buttons[0] === "string"
@@ -59,7 +59,7 @@ export async function sendWhatsappMessage({to, text, projectId, buttons = []}) {
         },
       };
     } else {
-      // ✅ Default to plain text message
+      // Default to plain text message
       payload = {
         messaging_product: "whatsapp",
         to,
@@ -86,8 +86,8 @@ export async function sendWhatsappMessage({to, text, projectId, buttons = []}) {
   }
 }
 
-export async function sendWhatsappMedia({to, content, projectId}){
-  try{
+export async function sendWhatsappMedia({to, content, projectId}) {
+  try {
     const {phoneNumberId, accessToken} = await getProjectCredentials(projectId);
 
     let payload;
@@ -97,7 +97,7 @@ export async function sendWhatsappMedia({to, content, projectId}){
       to,
       type: "document",
       document: {
-        "link": content.mediaUrl,
+        link: content.mediaUrl,
       },
     };
     const url = `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`;
@@ -110,8 +110,7 @@ export async function sendWhatsappMedia({to, content, projectId}){
 
     console.log("Media sent successfully:", response.data);
     return response.data;
-  }
-  catch(error){
+  } catch (error) {
     console.error(
       "Error sending WhatsApp media:",
       error.response ? error.response.data : error.message
