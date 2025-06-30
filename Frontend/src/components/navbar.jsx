@@ -78,8 +78,10 @@ export default function Navbar() {
                   className="flex items-center focus:outline-none"
                 >
                   <img
-                    src={`${user.photoUrl}`}
+                    src={user.photoUrl || "/default-avatar.png"}
                     className="rounded-full h-12 w-12"
+                    alt="user avatar"
+                    onError={e => { e.target.onerror = null; e.target.src = "/default-avatar.png"; }}
                   />
                   {/* <FaUserCircle size={32} className="text-blue-600" /> */}
                 </button>
@@ -92,11 +94,12 @@ export default function Navbar() {
                     >
                       {/* User Info */}
                       <div className="flex items-center gap-3 mb-2">
-                        {user?.avatarUrl ? (
+                        {(user?.avatarUrl || user?.photoUrl) ? (
                           <img
-                            src={user.avatarUrl}
+                            src={user.avatarUrl || user.photoUrl || "/default-avatar.png"}
                             alt="avatar"
                             className="w-12 h-12 rounded-full border"
+                            onError={e => { e.target.onerror = null; e.target.src = "/default-avatar.png"; }}
                           />
                         ) : (
                           <FaUserCircle size={48} className="text-blue-600" />

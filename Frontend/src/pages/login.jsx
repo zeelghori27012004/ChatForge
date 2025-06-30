@@ -75,6 +75,9 @@ const Login = () => {
       const profilePhoto =
         decoded?.picture || "https://avatar.iran.liara.run/public";
 
+      console.log("Google decoded: ", decoded);
+      console.log("Setting user: ", { email, name, isAdmin: formData.isAdmin, photoUrl: profilePhoto });
+
       setUser({
         email,
         name,
@@ -166,7 +169,7 @@ const Login = () => {
             />
 
             <p className="mt-4 text-sm text-center">
-              Don’t have an account?{" "}
+              Don't have an account?{" "}
               <span
                 onClick={() => navigate("/register")}
                 className="text-blue-600 cursor-pointer hover:underline"

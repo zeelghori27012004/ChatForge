@@ -4,12 +4,26 @@ import { getProfile } from "../services/authService";
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // Try to restore user from localStorage
+  const [user, setUserState] = useState(() => {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  // Wrap setUser to also update localStorage
+  const setUser = (userObj) => {
+    if (userObj) {
+      localStorage.setItem("user", JSON.stringify(userObj));
+    } else {
+      localStorage.removeItem("user");
+    }
+    setUserState(userObj);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      // Fetch user profile from backend
+    if (token && !user) {
+      // Fetch user profile from backend if not in localStorage
       getProfile()
         .then((profile) => setUser(profile))
         .catch(() => setUser({ token }));
@@ -18,7 +32,8 @@ export const UserProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("token");
-    setUser(null);
+    localStorage.removeItem("user");
+    setUserState(null);
   };
 
   return (
