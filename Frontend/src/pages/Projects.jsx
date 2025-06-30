@@ -143,7 +143,15 @@ export default function Projects() {
       }
     } catch (error) {
       console.error("Error toggling active state:", error.message);
-      notifyError(error.message);
+      // Split error messages if multiple errors are present
+      if (error.message && error.message.includes('Flow validation failed:')) {
+        const errorList = error.message.replace('Flow validation failed: ', '').split(', Error: ');
+        errorList.forEach((err, idx) => {
+          toast.error((idx === 0 ? err : 'Error: ' + err).trim());
+        });
+      } else {
+        notifyError(error.message);
+      }
 
       // If it's the "only one project" error, refresh to sync state
       if (error.message.includes("Only one project can be active")) {
@@ -156,14 +164,14 @@ export default function Projects() {
     <div className="bg-slate-300 min-h-screen">
       <ToastContainer
         position="top-center"
-        autoClose={2000}
+        autoClose={3000}
         hideProgressBar={false}
         newestOnTop={true}
         closeOnClick
         rtl={false}
         pauseOnFocusLoss
         draggable
-        pauseOnHover
+        pauseOnHover={true}
         theme="light"
       />
 
