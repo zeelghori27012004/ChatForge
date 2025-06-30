@@ -130,6 +130,7 @@ function BaseNodeDialog({ node, onClose, onSave, onDelete }) {
         className={`bg-white p-6 rounded-lg shadow-lg shadow-indigo-900 max-h-[90vh] overflow-y-auto relative animate-slide-in-right ${
           nodeType === "apiCall" ? "w-[1000px]" : "w-[500px]"
         }`}
+        onKeyDown={(e) => e.key === "Enter" && handleSave()}
       >
         <button
           onClick={() => {

@@ -76,7 +76,12 @@ const Login = () => {
         decoded?.picture || "https://avatar.iran.liara.run/public";
 
       console.log("Google decoded: ", decoded);
-      console.log("Setting user: ", { email, name, isAdmin: formData.isAdmin, photoUrl: profilePhoto });
+      console.log("Setting user: ", {
+        email,
+        name,
+        isAdmin: formData.isAdmin,
+        photoUrl: profilePhoto,
+      });
 
       setUser({
         email,
