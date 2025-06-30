@@ -111,22 +111,15 @@ function FlowBuilder() {
   }, [projectId]);
 
   const saveFlow = async () => {
-    const { isValid, errors } = validateFlow(nodes, edges);
     const fileTree = { nodes, edges };
 
-    if (isValid) {
-      try {
-        const data = await updateProjectFlow(projectId, fileTree);
-        console.log("Flow updated:", data);
-        toast.success("Flow saved successfully!");
-      } catch (error) {
-        console.error(error);
-        toast.error(error.message || "Failed to save flow");
-      }
-    } else {
-      setFlowErrors(errors);
-      errors.forEach((err) => toast.error(err)); // Show each error clearly
-      // Optional: setFlowErrors(errors); // only if you're displaying them somewhere
+    try {
+      const data = await updateProjectFlow(projectId, fileTree);
+      console.log("Flow updated:", data);
+      toast.success("Flow saved successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to save flow");
     }
   };
 
