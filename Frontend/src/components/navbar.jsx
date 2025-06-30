@@ -78,10 +78,15 @@ export default function Navbar() {
                   className="flex items-center focus:outline-none"
                 >
                   <img
-                    src={user.photoUrl || "/default-avatar.png"}
+                    src={
+                      user.photoUrl || "https://avatar.iran.liara.run/public"
+                    }
                     className="rounded-full h-12 w-12"
                     alt="user avatar"
-                    onError={e => { e.target.onerror = null; e.target.src = "/default-avatar.png"; }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://avatar.iran.liara.run/public";
+                    }}
                   />
                   {/* <FaUserCircle size={32} className="text-blue-600" /> */}
                 </button>
@@ -94,12 +99,20 @@ export default function Navbar() {
                     >
                       {/* User Info */}
                       <div className="flex items-center gap-3 mb-2">
-                        {(user?.avatarUrl || user?.photoUrl) ? (
+                        {user?.avatarUrl || user?.photoUrl ? (
                           <img
-                            src={user.avatarUrl || user.photoUrl || "/default-avatar.png"}
+                            src={
+                              user.avatarUrl ||
+                              user.photoUrl ||
+                              "https://avatar.iran.liara.run/public"
+                            }
                             alt="avatar"
                             className="w-12 h-12 rounded-full border"
-                            onError={e => { e.target.onerror = null; e.target.src = "/default-avatar.png"; }}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src =
+                                "https://avatar.iran.liara.run/public";
+                            }}
                           />
                         ) : (
                           <FaUserCircle size={48} className="text-blue-600" />
