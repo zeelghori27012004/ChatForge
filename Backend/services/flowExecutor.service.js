@@ -270,7 +270,7 @@ export async function processMessage({
 
       if (validationType === "email") {
         isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
-      } else if (validationType === "phonenumber") {
+      } else if (validationType === "phone number") {
         isValid = /^\+?\d{10,15}$/.test(input);
       } else if (validationType === "url") {
         isValid =
@@ -409,7 +409,7 @@ async function executeNode(nodeId, context) {
       nextNodeId = findNextNode(
         node.id,
         fileTree.edges,
-        matches ? "true" : "false"
+        matches ? "Success" : "Failure"
       );
       break;
 
