@@ -30,6 +30,12 @@ router.get(
   userController.profileController
 );
 
+router.patch(
+  "/profile",
+  authMiddleware.authUser,
+  userController.updateProfileController,
+)
+
 router.get("/logout", authMiddleware.authUser, userController.logoutController);
 
 router.get('/all', authMiddleware.authUser, userController.getAllUsersController);
