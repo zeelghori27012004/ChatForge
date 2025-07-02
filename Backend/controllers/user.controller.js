@@ -95,8 +95,6 @@ export const loginController = async (req, res) => {
 
 export const profileController = async (req, res) => {
   console.log("req for profile display received")
-  console.log(".req.user : ", req.user)
-  console.log("req.user.email : ", req.user.email)
   let fullUser = await userModel.findOne({email:req.user.email}).select('fullname email phoneNumber')
   console.log(fullUser)
   res.status(200).json({
