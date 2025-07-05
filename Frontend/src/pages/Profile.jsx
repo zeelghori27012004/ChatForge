@@ -1,28 +1,117 @@
 import React, { useContext, useState, useEffect } from "react";
 import { UserContext } from "../context/User.context";
 import { FaYoutube, FaInstagram, FaFacebook, FaTwitter, FaGithub, FaGlobe } from "react-icons/fa";
+import { updateProfile, getProfile } from "../services/authService";
+import { useUser } from "../context/User.context";
 
 export default function Profile() {
-  const { user } = useContext(UserContext);
+  const { user, setUser } = useUser ? useUser() : useContext(UserContext);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({
-    name: user?.name || user?.username || "",
+    fullname: user?.fullname || "",
     email: user?.email || "",
+    phoneNumber: user?.phoneNumber || "",
+    companyName: user?.companyName || "",
+    description: user?.description || "",
+    socialHandles: {
+      youtube: user?.socialHandles?.youtube || "",
+      instagram: user?.socialHandles?.instagram || "",
+      facebook: user?.socialHandles?.facebook || "",
+      twitter: user?.socialHandles?.twitter || "",
+      github: user?.socialHandles?.github || "",
+      website: user?.socialHandles?.website || "",
+    },
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    setForm({
-      name: user?.name || user?.username || "",
-      email: user?.email || "",
-    });
+    if (!user) {
+      setLoading(true);
+      getProfile()
+        .then((data) => {
+          setUser(data.user);
+          setForm({
+            fullname: data.user.fullname || "",
+            email: data.user.email || "",
+            phoneNumber: data.user.phoneNumber || "",
+            companyName: data.user.companyName || "",
+            description: data.user.description || "",
+            socialHandles: {
+              youtube: data.user.socialHandles?.youtube || "",
+              instagram: data.user.socialHandles?.instagram || "",
+              facebook: data.user.socialHandles?.facebook || "",
+              twitter: data.user.socialHandles?.twitter || "",
+              github: data.user.socialHandles?.github || "",
+              website: data.user.socialHandles?.website || "",
+            },
+          });
+        })
+        .catch(() => setError("Failed to load profile"))
+        .finally(() => setLoading(false));
+    } else {
+      setForm({
+        fullname: user.fullname || "",
+        email: user.email || "",
+        phoneNumber: user.phoneNumber || "",
+        companyName: user.companyName || "",
+        description: user.description || "",
+        socialHandles: {
+          youtube: user.socialHandles?.youtube || "",
+          instagram: user.socialHandles?.instagram || "",
+          facebook: user.socialHandles?.facebook || "",
+          twitter: user.socialHandles?.twitter || "",
+          github: user.socialHandles?.github || "",
+          website: user.socialHandles?.website || "",
+        },
+      });
+    }
   }, [user]);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (["youtube", "instagram", "facebook", "twitter", "github", "website"].includes(name)) {
+      setForm((prev) => ({
+        ...prev,
+        socialHandles: { ...prev.socialHandles, [name]: value },
+      }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleEdit = () => setEditMode(true);
-  const handleSave = () => setEditMode(false);
+  const handleSave = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const data = await updateProfile(form);
+      setUser(data.user);
+      setForm({
+        fullname: data.user.fullname || "",
+        email: data.user.email || "",
+        phoneNumber: data.user.phoneNumber || "",
+        companyName: data.user.companyName || "",
+        description: data.user.description || "",
+        socialHandles: {
+          youtube: data.user.socialHandles?.youtube || "",
+          instagram: data.user.socialHandles?.instagram || "",
+          facebook: data.user.socialHandles?.facebook || "",
+          twitter: data.user.socialHandles?.twitter || "",
+          github: data.user.socialHandles?.github || "",
+          website: data.user.socialHandles?.website || "",
+        },
+      });
+      setSuccess("Profile updated successfully");
+      setEditMode(false);
+    } catch (err) {
+      setError("Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center pt-8">
@@ -34,12 +123,12 @@ export default function Profile() {
             {editMode ? (
               <input
                 className="border rounded px-2 py-1 w-2/3"
-                name="name"
-                value={form.name}
+                name="fullname"
+                value={form.fullname}
                 onChange={handleChange}
               />
             ) : (
-              <span className="text-gray-600">{form.name || "-"}</span>
+              <span className="text-gray-600">{form.fullname || "-"}</span>
             )}
           </div>
           <div className="flex justify-between py-3 items-center">
@@ -60,12 +149,12 @@ export default function Profile() {
             {editMode ? (
               <input
                 className="border rounded px-2 py-1 w-2/3"
-                name="number"
-                value={form.number}
+                name="phoneNumber"
+                value={form.phoneNumber}
                 onChange={handleChange}
               />
             ) : (
-              <span className="text-gray-600">{form.number || "-"}</span>
+              <span className="text-gray-600">{form.phoneNumber || "-"}</span>
             )}
           </div>
           <div className="flex justify-between py-3 items-center">
@@ -73,12 +162,12 @@ export default function Profile() {
             {editMode ? (
               <input
                 className="border rounded px-2 py-1 w-2/3"
-                name="company"
-                value={form.company}
+                name="companyName"
+                value={form.companyName}
                 onChange={handleChange}
               />
             ) : (
-              <span className="text-gray-600">{form.company || "-"}</span>
+              <span className="text-gray-600">{form.companyName && form.companyName.trim() !== "" ? form.companyName : "-"}</span>
             )}
           </div>
           <div className="flex justify-between py-3 items-center">
@@ -87,12 +176,12 @@ export default function Profile() {
               <textarea
                 className="border rounded px-2 py-1 w-2/3 min-h-[80px] resize-y"
                 name="description"
-                // value={form.description}
+                value={form.description}
                 onChange={handleChange}
                 rows={4}
               />
             ) : (
-              <span className="text-gray-600">{"-"}</span>
+              <span className="text-gray-600">{form.description && form.description.trim() !== "" ? form.description : "-"}</span>
             )}
           </div>
           {/* Social Handles Section */}
@@ -106,7 +195,7 @@ export default function Profile() {
                   name="youtube"
                   placeholder="https://"
                   className="bg-transparent outline-none w-full"
-                //   value={form.youtube}
+                  value={form.socialHandles.youtube}
                   onChange={handleChange}
                   disabled={!editMode}
                 />
@@ -118,7 +207,7 @@ export default function Profile() {
                   name="instagram"
                   placeholder="https://"
                   className="bg-transparent outline-none w-full"
-                //   value={form.instagram}
+                  value={form.socialHandles.instagram}
                   onChange={handleChange}
                   disabled={!editMode}
                 />
@@ -130,7 +219,7 @@ export default function Profile() {
                   name="facebook"
                   placeholder="https://"
                   className="bg-transparent outline-none w-full"
-                //   value={form.facebook}
+                  value={form.socialHandles.facebook}
                   onChange={handleChange}
                   disabled={!editMode}
                 />
@@ -142,7 +231,7 @@ export default function Profile() {
                   name="twitter"
                   placeholder="https://"
                   className="bg-transparent outline-none w-full"
-                //   value={form.twitter}
+                  value={form.socialHandles.twitter}
                   onChange={handleChange}
                   disabled={!editMode}
                 />
@@ -154,7 +243,7 @@ export default function Profile() {
                   name="github"
                   placeholder="https://"
                   className="bg-transparent outline-none w-full"
-                //   value={form.github}
+                  value={form.socialHandles.github}
                   onChange={handleChange}
                   disabled={!editMode}
                 />
@@ -166,7 +255,7 @@ export default function Profile() {
                   name="website"
                   placeholder="https://"
                   className="bg-transparent outline-none w-full"
-                //   value={form.website}
+                  value={form.socialHandles.website}
                   onChange={handleChange}
                   disabled={!editMode}
                 />
@@ -189,6 +278,9 @@ export default function Profile() {
             Edit
           </button>
         )}
+        {error && <div className="text-red-500 mt-2">{error}</div>}
+        {success && <div className="text-green-600 mt-2">{success}</div>}
+        {loading && <div className="text-gray-500 mt-2">Loading...</div>}
       </div>
     </div>
   );

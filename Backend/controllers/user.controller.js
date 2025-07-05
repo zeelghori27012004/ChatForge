@@ -95,7 +95,7 @@ export const loginController = async (req, res) => {
 
 export const profileController = async (req, res) => {
   console.log("req for profile display received")
-  let fullUser = await userModel.findOne({email:req.user.email}).select('fullname email phoneNumber')
+  let fullUser = await userModel.findOne({email:req.user.email}).select('fullname email phoneNumber companyName description socialHandles')
   console.log(fullUser)
   res.status(200).json({
     user: fullUser,
@@ -104,7 +104,7 @@ export const profileController = async (req, res) => {
 
 export const updateProfileController = async (req, res) => {
   try {
-    const { fullname, email, phoneNumber } = req.body;
+    const { fullname, email, phoneNumber, companyName, description, socialHandles } = req.body;
 
     console.log("Profile update requested by:", req.user.email);
 
@@ -115,9 +115,12 @@ export const updateProfileController = async (req, res) => {
           ...(fullname && { fullname }),
           ...(email && { email }),
           ...(phoneNumber && { phoneNumber }),
+          ...(companyName && { companyName }),
+          ...(description && { description }),
+          ...(socialHandles && { socialHandles }),
         },
       },
-      { new: true, select: 'fullname email phoneNumber' }
+      { new: true, select: 'fullname email phoneNumber companyName description socialHandles' }
     );
 
     if (!updatedUser) {
