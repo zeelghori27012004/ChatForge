@@ -94,9 +94,47 @@ export const loginController = async (req, res) => {
 };
 
 export const profileController = async (req, res) => {
+  console.log("req for profile display received")
+  let fullUser = await userModel.findOne({email:req.user.email}).select('fullname email phoneNumber companyName description socialHandles')
+  console.log(fullUser)
   res.status(200).json({
-    user: req.user,
+    user: fullUser,
   });
+};
+
+export const updateProfileController = async (req, res) => {
+  try {
+    const { fullname, email, phoneNumber, companyName, description, socialHandles } = req.body;
+
+    console.log("Profile update requested by:", req.user.email);
+
+    const updatedUser = await userModel.findOneAndUpdate(
+      { email: req.user.email },
+      {
+        $set: {
+          ...(fullname && { fullname }),
+          ...(email && { email }),
+          ...(phoneNumber && { phoneNumber }),
+          ...(companyName && { companyName }),
+          ...(description && { description }),
+          ...(socialHandles && { socialHandles }),
+        },
+      },
+      { new: true, select: 'fullname email phoneNumber companyName description socialHandles' }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    res.status(200).json({
+      message: 'Profile updated successfully.',
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
 };
 
 export const logoutController = async (req, res) => {

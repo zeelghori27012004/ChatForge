@@ -91,13 +91,32 @@ export const register = async (formData) => {
 export const getProfile = async () => {
   const token = localStorage.getItem("token");
   const response = await fetch(
-    `${import.meta.env.VITE_SERVER_DOMAIN}/users/me`,
+    `${import.meta.env.VITE_SERVER_DOMAIN}/users/profile`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }
   );
   if (!response.ok) {
     throw new Error("Failed to fetch user profile");
+  }
+  return await response.json();
+};
+
+export const updateProfile = async (profileData) => {
+  const token = localStorage.getItem("token");
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_DOMAIN}/users/profile`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(profileData),
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to update profile");
   }
   return await response.json();
 };
