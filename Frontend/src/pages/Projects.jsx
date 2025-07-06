@@ -144,10 +144,12 @@ export default function Projects() {
     } catch (error) {
       console.error("Error toggling active state:", error.message);
       // Split error messages if multiple errors are present
-      if (error.message && error.message.includes('Flow validation failed:')) {
-        const errorList = error.message.replace('Flow validation failed: ', '').split(', Error: ');
+      if (error.message && error.message.includes("Flow validation failed:")) {
+        const errorList = error.message
+          .replace("Flow validation failed: ", "")
+          .split(", Error: ");
         errorList.forEach((err, idx) => {
-          toast.error((idx === 0 ? err : 'Error: ' + err).trim());
+          toast.error((idx === 0 ? err : "Error: " + err).trim());
         });
       } else {
         notifyError(error.message);
@@ -197,7 +199,10 @@ export default function Projects() {
             {projects.map((project) => (
               <div
                 key={project._id}
-                className="relative flex justify-between items-center bg-slate-200 border border-gray-200 shadow rounded-xl p-5 m-5 hover:shadow-sm duration-300 hover:shadow-black transition-all"
+                onClick={(e) => {
+                  navigate(`/projects/${project._id}`);
+                }}
+                className="relative flex justify-between items-center bg-slate-200 border border-gray-200 shadow rounded-xl p-5 m-5 hover:shadow-sm duration-300 hover:shadow-black transition-all cursor-pointer"
               >
                 <h2 className="text-xl font-semibold text-black capitalize mb-1">
                   {project.name}
