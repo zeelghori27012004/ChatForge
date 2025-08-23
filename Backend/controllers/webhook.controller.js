@@ -47,8 +47,8 @@ export const handleIncomingMessage = async (req, res) => {
 
     const from = message.from;
 
-const messageText = message?.text?.body || "";
-const buttonReplyId = message?.interactive?.button_reply?.id || "";
+    const messageText = message?.text?.body || "";
+    const buttonReplyId = message?.interactive?.button_reply?.id || "";
 
     // Send both text and button id to the processor
     await processMessage({
